@@ -1,14 +1,45 @@
 -- Copyright 2012 Gabor Juhos <juhosg@openwrt.org>
 -- Licensed to the public under the Apache License 2.0.
 
+local docker = require "luci.docker"
+local dk = docker.new()
+local pod_name= "luci_plugin_minidlna"
+local containers = dk:list(pod_name, {all = true}).body
+local SYSROOT = os.getenv("LUCI_SYSROOT")
+
+function create_container(c_name)
+	local cmd = "docker create  -d --name ".. c_name ..
+			" --restart unless-stopped "..
+			"-e TZ=Asia/Shanghai "..
+			"--network host "..
+			"-v /media:/media:rslave,ro "..
+			"lisaac/luci-plugin-minidlna"
+	luci.http.redirect(luci.dispatcher.build_url("admin/docker/newcontainer/".. luci.util.urlencode(cmd)))
+  end
+
+local exists = 0
+for _, v in pairs(containers) do
+	local container_name = v.Names[1]:sub(2)
+	if pod_name == container_name then
+		exists = v
+	end
+end
+if exists ~= 0 then
+	local res
+	local map_name = pod_name
+	if not nixio.fs.access("/etc/config/"..map_name) then return end
+	nixio.fs.mkdirr("/etc/config/template/")
+	res = dk.containers:get_archive(pod_name, {path = "/etc/samba/smbpasswd"})
+else
+	create_container(pod_name)
+end
+
 local m, s, o
 
 m = Map("luci_plugin_minidlna", translate("miniDLNA"),
 	translate("MiniDLNA is server software with the aim of being fully compliant with DLNA/UPnP-AV clients."))
 
-m:section(SimpleSection).template  = "minidlna_status"
-
-s = m:section(TypedSection, "minidlna", "miniDLNA Settings")
+s = m:section(TypedSection, "minidlna", translate("miniDLNA Settings"), translate("Container:")..pod_name)
 s.addremove = false
 s.anonymous = true
 
@@ -18,22 +49,6 @@ s:tab("advanced", translate("Advanced Settings"))
 o = s:taboption("general", Flag, "enabled", translate("Enable"))
 o.rmempty = false
 
--- function o.cfgvalue(self, section)
--- 	return luci.sys.init.enabled("minidlna") and self.enabled or self.disabled
--- end
-
--- function o.write(self, section, value)
--- 	if value == "1" then
--- 		luci.sys.init.enable("minidlna")
--- 		luci.sys.call("/etc/init.d/minidlna start >/dev/null")
--- 	else
--- 		luci.sys.call("/etc/init.d/minidlna stop >/dev/null")
--- 		luci.sys.init.disable("minidlna")
--- 	end
-
--- 	return Flag.write(self, section, value)
--- end
-
 o = s:taboption("general", Value, "port", translate("Port"),
 	translate("Port for HTTP (descriptions, SOAP, media transfer) traffic."))
 o.datatype = "port"
@@ -42,28 +57,6 @@ o.default = 8200
 
 o = s:taboption("general", Value, "interface", translate("Interfaces"),
 	translate("Network interfaces to serve."))
-
--- function o.cfgvalue(self, section)
--- 	local rv = { }
--- 	local val = Value.cfgvalue(self, section)
--- 	if val then
--- 		local ifc
--- 		for ifc in val:gmatch("[^,%s]+") do
--- 			rv[#rv+1] = ifc
--- 		end
--- 	end
--- 	return rv
--- end
-
--- function o.write(self, section, value)
--- 	local rv = { }
--- 	local ifc
--- 	for ifc in luci.util.imatch(value) do
--- 		rv[#rv+1] = ifc
--- 	end
--- 	Value.write(self, section, table.concat(rv, ","))
--- end
-
 
 o = s:taboption("general", Value, "friendly_name", translate("Friendly name"),
 	translate("Set this if you want to customize the name that shows up on your clients."))
@@ -124,10 +117,8 @@ o:value("M", translate("Music"))
 o:value("V", translate("Video"))
 o:value("P", translate("Pictures"))
 
-
 s:taboption("general", DynamicList, "media_dir", translate("Media directories"),
 	translate("Set this to the directory you want scanned. If you want to restrict the directory to a specific content type, you can prepend the type ('A' for audio, 'V' for video, 'P' for images), followed by a comma, to the directory (eg. A,/mnt/media/Music). Multiple directories can be specified."))
-
 
 o = s:taboption("general", DynamicList, "album_art_names", translate("Album art names"),
 	translate("This is a list of file names to check for when searching for album art."))
