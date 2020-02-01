@@ -1,0 +1,6 @@
+#!/bin/sh
+
+uci delete ucitrack.@luci_plugin_minidlna[-1] >/dev/null 2>&1
+uci add ucitrack luci_plugin_minidlna >/dev/null 2>&1
+uci set ucitrack.@luci_plugin_minidlna[-1].init=luci_plugin_minidlna >/dev/null 2>&1
+uci commit ucitrack >/dev/null 2>&1
