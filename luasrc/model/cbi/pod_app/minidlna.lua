@@ -54,7 +54,6 @@ o = s:taboption("general", Value, "port", translate("Port"),
 o.datatype = "port"
 o.default = 8200
 
-
 o = s:taboption("general", Value, "interface", translate("Interfaces"),
 	translate("Network interfaces to serve."))
 
