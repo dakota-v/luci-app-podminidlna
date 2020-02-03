@@ -32,7 +32,7 @@ docker run -d \
 git clone https://github.com/lisaac/luci-lib-docker $HOME/pods/luci/plugin/luci-lib-docker
 git clone https://github.com/lisaac/luci-app-dockerman $HOME/pods/luci/plugin/luci-app-dockerman
 # 安装插件
-git clone http://github.com/lisaac/luci-plugin-minidlna $HOME/pods/luci/plugin/luci-lib-docker
+git clone http://github.com/lisaac/luci-plugin-minidlna $HOME/pods/luci/plugin/luci-plugin-minidlna
 
 # 重启luci容器
 docker restart luci
