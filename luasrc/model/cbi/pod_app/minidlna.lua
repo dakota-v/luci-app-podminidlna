@@ -2,9 +2,9 @@
 -- Licensed to the public under the Apache License 2.0.
 
 local docker = require "luci.docker"
-local dk = docker.new()
+local dk = docker.new({socket_path="/var/run/docker.sock"})
 local pod_name= "luci_plugin_minidlna"
-local containers = dk:list(pod_name, {all = true}).body
+local containers = dk:list({name=pod_name, query={all = true}}).body
 local SYSROOT = os.getenv("LUCI_SYSROOT")
 
 function create_container(c_name)
@@ -25,18 +25,14 @@ for _, v in pairs(containers) do
 	end
 end
 if exists ~= 0 then
-	local res
-	local map_name = pod_name
-	if not nixio.fs.access("/etc/config/"..map_name) then return end
-	nixio.fs.mkdirr("/etc/config/template/")
-	res = dk.containers:get_archive(pod_name, {path = "/etc/samba/smbpasswd"})
+	if not nixio.fs.access("/etc/config/"..pod_name) then return end
 else
 	create_container(pod_name)
 end
 
 local m, s, o
 
-m = Map("luci_plugin_minidlna", translate("miniDLNA"),
+m = Map(pod_name, translate("miniDLNA"),
 	translate("MiniDLNA is server software with the aim of being fully compliant with DLNA/UPnP-AV clients."))
 
 s = m:section(TypedSection, "minidlna", translate("miniDLNA Settings"), translate("Container:")..pod_name)
