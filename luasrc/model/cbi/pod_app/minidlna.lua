@@ -8,7 +8,7 @@ local containers = dk:list({name=pod_name, query={all = true}}).body
 local SYSROOT = os.getenv("LUCI_SYSROOT")
 
 function create_container(c_name)
-	local cmd = "docker create  -d --name ".. c_name ..
+	local cmd = "DOCKERCLI -d --name ".. c_name ..
 			" --restart unless-stopped "..
 			"-e TZ=Asia/Shanghai "..
 			"--network host "..
