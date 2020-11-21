@@ -4,8 +4,8 @@
 START=50
 STOP=41
 
-CONTAINER_NAME='luci_plugin_minidlna'
-MINIDLNA_CONFIG_FILE="/tmp/conf.d/$CONTAINER_NAME/minidlna.conf"
+POD_NAME='pod_minidlna'
+MINIDLNA_CONFIG_FILE="/tmp/conf.d/$POD_NAME/minidlna.conf"
 
 minidlna_cfg_append() {
 	echo "$1" >> "$MINIDLNA_CONFIG_FILE"
@@ -43,15 +43,16 @@ minidlna_create_config() {
 	local interface
 
 	config_get port "$cfg" port "8200"
-	config_get interface "$cfg" interface
+	# config_get interface "$cfg" interface
 
 	[ -t "$port" ] && return 1
 
-	mkdir -p /tmp/conf.d/$CONTAINER_NAME
+	mkdir -p /tmp/conf.d/$POD_NAME
 	echo "# this file is generated automatically, don't edit" > "$MINIDLNA_CONFIG_FILE"
 
 	minidlna_cfg_append "port=$port"
-	minidlna_cfg_append "network_interface=$interface"
+	# minidlna_cfg_append "network_interface=$interface"
+	minidlna_cfg_append "network_interface="
 
 	minidlna_cfg_addstr "$cfg" friendly_name
 	minidlna_cfg_addstr "$cfg" db_dir
@@ -80,23 +81,23 @@ start() {
 	local log_dir
 	local var
 
-	config_load 'luci_plugin_minidlna'
+	config_load 'pod_minidlna'
 	config_get_bool enabled config 'enabled' '0'
 
 	[ "$enabled" -gt 0 ] || return 1
 
 	config_get val "config" uuid
-	[ "$val" = '' ] && uci set luci_plugin_minidlna.config.uuid=$(cat /proc/sys/kernel/random/uuid) && uci commit
+	[ "$val" = '' ] && uci set pod_minidlna.config.uuid=$(cat /proc/sys/kernel/random/uuid) && uci commit
 
 	minidlna_create_config config || return 1
 
 	config_get db_dir config 'db_dir' '/var/run/minidlna'
 	config_get log_dir config 'log_dir' '/var/log/minidlna'
 
-	docker cp "$MINIDLNA_CONFIG_FILE" $CONTAINER_NAME:/etc/minidlna/minidlna.conf
-	docker restart "$CONTAINER_NAME"
+	docker cp "$MINIDLNA_CONFIG_FILE" $POD_NAME:/etc/minidlna/minidlna.conf
+	docker restart "$POD_NAME"
 }
 
 stop() {
-	docker stop "$CONTAINER_NAME"
+	docker stop "$POD_NAME"
 }

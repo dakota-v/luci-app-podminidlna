@@ -1,8 +1,8 @@
 config minidlna config
 	option 'enabled' '0'
 	option port '8200'
-	option interface 'br-lan'
-	option friendly_name 'OpenWrt DLNA Server'
+	option interface ''
+	option friendly_name 'POD DLNA Server'
 	option db_dir '/var/run/minidlna'
 	option log_dir '/var/log/minidlna'
 	option inotify '1'
@@ -15,5 +15,11 @@ config minidlna config
 	option model_number '1'
 	option root_container '.'
 	option uuid ''
-	list media_dir '/mnt'
+	list media_dir '/media'
 	option album_art_names 'Cover.jpg/cover.jpg/AlbumArtSmall.jpg/albumartsmall.jpg/AlbumArt.jpg/albumart.jpg/Album.jpg/album.jpg/Folder.jpg/folder.jpg/Thumb.jpg/thumb.jpg'
+
+config pod 'pod'
+	option pod_minidlna_config '/etc/minidlna/minidlna.conf'
+	option pod_name 'pod_minidlna'
+	option image_name 'lisaac/podminidlna'
+

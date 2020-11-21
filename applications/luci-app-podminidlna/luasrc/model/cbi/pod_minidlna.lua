@@ -1,41 +1,43 @@
 -- Copyright 2012 Gabor Juhos <juhosg@openwrt.org>
 -- Licensed to the public under the Apache License 2.0.
 
-local docker = require "luci.docker"
-local dk = docker.new({socket_path="/var/run/docker.sock"})
-local pod_name= "luci_plugin_minidlna"
+local docker = require "luci.model.docker"
+local dk = docker.new()
+local pod_name = luci.model.uci:get("pod_minidlna", "pod", "pod_name") or "pod_minidlna"
+local image_name = luci.model.uci:get("pod_minidlna", "pod", "image_name") or "lisaac/podminidlna"
 local containers = dk:list({name=pod_name, query={all = true}}).body
-local SYSROOT = os.getenv("LUCI_SYSROOT")
-
-function create_container(c_name)
-	local cmd = "DOCKERCLI -d --name ".. c_name ..
-			" --restart unless-stopped "..
-			"-e TZ=Asia/Shanghai "..
-			"--network host "..
-			"-v /media:/media:rslave,ro "..
-			"lisaac/luci-plugin-minidlna"
-	luci.http.redirect(luci.dispatcher.build_url("admin/docker/newcontainer/".. luci.util.urlencode(cmd)))
-  end
-
-local exists = 0
-for _, v in pairs(containers) do
-	local container_name = v.Names[1]:sub(2)
-	if pod_name == container_name then
-		exists = v
-	end
-end
-if exists ~= 0 then
-	if not nixio.fs.access("/etc/config/"..pod_name) then return end
-else
-	create_container(pod_name)
-end
 
 local m, s, o
 
-m = Map(pod_name, translate("miniDLNA"),
-	translate("MiniDLNA is server software with the aim of being fully compliant with DLNA/UPnP-AV clients."))
+function exists(pod_name)
+	for _, v in pairs(containers) do
+		local container_name = v.Names[1]:sub(2)
+		if pod_name == container_name then
+			return pod_name
+		end
+	end
+return
+end
+if exists(pod_name) then
+  m = Map(pod_name, translate("miniDLNA"), translate("MiniDLNA is server software with the aim of being fully compliant with DLNA/UPnP-AV clients."))
+else
+	local cmd = "DOCKERCLI -d --name ".. pod_name ..
+	" --restart unless-stopped "..
+	"-e TZ=Asia/Shanghai "..
+	"--network host "..
+	"-v /media:/media:rslave,ro ".. image_name
+	m = Map(pod_name, translate("miniDLNA"), "<a href='"..luci.dispatcher.build_url("admin/docker/newcontainer/".. luci.util.urlencode(cmd)).."' >".. translate("There is no Pod(container) named 「".. pod_name.. "」, please create it first!") .. "</a>")
+	-- since there no pod, so disable apply & save button
+	m.formvalue = function(self, x, ...)
+		if x == "cbi.skip" then
+			return true
+		else
+			m.formvalue(self, ...)
+		end
+	end
+end
 
-s = m:section(TypedSection, "minidlna", translate("miniDLNA Settings"), translate("Container:")..pod_name)
+s = m:section(TypedSection, "minidlna", translate("miniDLNA Settings"))
 s.addremove = false
 s.anonymous = true
 
@@ -50,8 +52,8 @@ o = s:taboption("general", Value, "port", translate("Port"),
 o.datatype = "port"
 o.default = 8200
 
-o = s:taboption("general", Value, "interface", translate("Interfaces"),
-	translate("Network interfaces to serve."))
+-- o = s:taboption("general", Value, "interface", translate("Interfaces"),
+-- 	translate("Network interfaces to serve."))
 
 o = s:taboption("general", Value, "friendly_name", translate("Friendly name"),
 	translate("Set this if you want to customize the name that shows up on your clients."))

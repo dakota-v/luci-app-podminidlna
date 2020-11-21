@@ -1,16 +1,16 @@
 -- Copyright 2012 Gabor Juhos <juhosg@openwrt.org>
 -- Licensed to the public under the Apache License 2.0.
 
-module("luci.controller.pod_app.minidlna", package.seeall)
+module("luci.controller.pod_minidlna", package.seeall)
 
 function index()
-	if not nixio.fs.access("/etc/config/luci_plugin_minidlna") then
+	if not nixio.fs.access("/etc/config/pod_minidlna") then
 		return
 	end
 
 	local page
 
-	page = entry({"admin", "services", "pod_minidlna"}, cbi("pod_app/minidlna"), _("miniDLNA in container"))
+	page = entry({"admin", "services", "pod_minidlna"}, cbi("pod_minidlna"), _("Pod miniDLNA"))
 	page.dependent = true
 
 	entry({"admin", "services", "pod_minidlna_status"}, call("minidlna_status"))
